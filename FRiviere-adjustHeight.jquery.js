@@ -2,147 +2,161 @@
     $.fn.FRresize = function( options ) {
 
         var item = $(this); //Elemement d'origine à resizer
-        var items = {
-            allItems: item
-        };
-        var ALLITEM = items.allItems;
 
-        var biggerHeight;
-        biggerHeight = 0;
+        options = $.extend({
+            onLoad: true,
+            defaultCss: 'min-height',
+            responsiveScreen: {
+                0:  'everytime',
+                768: 'screen',
+                992: 'screen',
+                1200: 'screen'
+            },
+            lineResize: false
+        }, options);
 
-        //Si il y à vraiment des elements à resizer
-        if (item.length > 1) {
+        var optionsOnLoad = options.onLoad;
+        var optionsDefaultCss = options.defaultCss;
+        var optionsResponsiveScreen = options.responsiveScreen;
+        var optionsLineResize = options.lineResize;
 
-            options = $.extend({
-                onLoad: true,
-                responsive: false,
-                responsiveBootstrap: {
-                    screenXs: 480,
-                    screenSm: 768,
-                    screenMd: 992,
-                    screenLg: 1200
-                },
-                resizeXs: false
-            }, options);
+        var resize = function() {};
 
-            function FRresize() {
+        var allElemMaxHeight = 0;
+        var lineBiggerHeight = 0;
+
+        function dataAllItem() {
+            allElemMaxHeight = 0;
+            var FRitems = [];
+            item.each(function(i){
+                var thisItem = $(this);
+                FRitems[i] = [];
+                FRitems[i]['ITEM'] = this;
+                FRitems[i]['HEIGHT'] = thisItem.outerHeight();
+                FRitems[i]['ITEMTORESIZE'] = itemToResize(thisItem);
+                FRitems[i]['CSSTOCHANGE'] = cssToChange(thisItem);
+                FRitems[i]['OLDCSSVALUE'] = oldCssValue(thisItem);
+
+                if (optionsLineResize) {
+
+                }
+                if ( FRitems[i].HEIGHT > allElemMaxHeight ) {
+                    allElemMaxHeight = FRitems[i].HEIGHT;
+                }
+            });
+            return FRitems;
+        }
+
+        resize.prototype.items = dataAllItem();
+        resize.prototype.allElemMaxHeight = allElemMaxHeight;
+        resize.prototype.whichScreen = whichScreen();
+
+        console.log(resize.prototype);
+
+        function itemToResize(elem) {
+            var elemToResize = elem.find('.elem-to-resize');
+            if (elemToResize.length > 0) {
+                return elemToResize[0]
+            } else {
+                return elem[0]
             }
-
-            FRresize.elemToResize = {};
-            FRresize.cssToChange = {};
-            FRresize.getBiggerValue = {};
-            FRresize.getwindowWidth = {};
-            FRresize.wichScreen = {};
-
-            FRresize.prototype.elemToResize = function(elem) {
-                var elemToResize = $(elem).find('.elem-to-resize');
-                if (elemToResize.length > 0) {
-                    return elemToResize
-                } else {
-                    return $(elem)
-                }
-            };
-            FRresize.prototype.cssToChange = function(elem) {
-                var cssToChange = FRresize.prototype.elemToResize(elem).data('newheight');
-                if ( cssToChange ) {
-                    return cssToChange;
-                } else {
-                    return 'height';
-                }
-            };
-            FRresize.prototype.getBiggerValue = function(elem) {
-                biggerHeight = 0;
-                var itemHeight;
-                var i;
-                for (i = 0; i < elem.length; i++) {
-                    itemHeight = $(elem[i]).outerHeight();
-                    if (itemHeight > biggerHeight) {
-                        biggerHeight = itemHeight;
-                    }
-                }
-                return biggerHeight;
-            };
-            FRresize.prototype.getWindowWidth = function() {
-                var windowWidth = 0;
-                if (typeof(window.innerWidth) == 'number') {
-                    windowWidth = window.innerWidth;
+        }
+        function cssToChange(elem) {
+            var cssToChange = elem.data('newheight');
+            if ( cssToChange ) {
+                return cssToChange;
+            } else {
+                return optionsDefaultCss;
+            }
+        }
+        function oldCssValue(elem) {
+            return parseInt($(itemToResize(elem)).css(cssToChange(elem)).replace('px', ''));
+        }
+        function getWindowWidth() {
+            var windowWidth = 0;
+            if (typeof(window.innerWidth) == 'number') {
+                windowWidth = window.innerWidth;
+            }
+            else {
+                if (document.documentElement && document.documentElement.clientWidth) {
+                    windowWidth = document.documentElement.clientWidth;
                 }
                 else {
-                    if (document.documentElement && document.documentElement.clientWidth) {
-                        windowWidth = document.documentElement.clientWidth;
-                    }
-                    else {
-                        if (document.body && document.body.clientWidth) {
-                            windowWidth = document.body.clientWidth;
-                        }
+                    if (document.body && document.body.clientWidth) {
+                        windowWidth = document.body.clientWidth;
                     }
                 }
-                return windowWidth;
-            };
-            FRresize.prototype.wichScreen = function() {
-                var screenSizeBeforeResize = FRresize.prototype.getWindowWidth();
-                if ( screenSizeBeforeResize < options.responsiveBootstrap.screenSm ) {
-                    return 'screenXs'
-                } else if ( screenSizeBeforeResize >= options.responsiveBootstrap.screenSm && screenSizeBeforeResize < options.responsiveBootstrap.screenMd ) {
-                    return 'screenSm'
-                } else if (screenSizeBeforeResize >= options.responsiveBootstrap.screenMd && screenSizeBeforeResize < options.responsiveBootstrap.screenLg ) {
-                    return 'screenMd'
-                } else if ( screenSizeBeforeResize >= options.responsiveBootstrap.screenLg ) {
-                    return 'screenLg'
-                }
-            };
-
-            function removeAllStyle(elem) {
-                biggerHeight = 0;
-                var i;
-                for (i = 0; i < elem.length; i++) {
-                    var thisElem = $(elem[i]);
-                    var cssToChange = FRresize.prototype.cssToChange(thisElem);
-                    thisElem.css(cssToChange, '')
+            }
+            return windowWidth;
+        }
+        function whichScreen() {
+            var screenSizeBeforeResize = getWindowWidth();
+            var thisNewScreen;
+            for ( var thisScreen in optionsResponsiveScreen ) {
+                if (optionsResponsiveScreen.hasOwnProperty(thisScreen)) {
+                    if (screenSizeBeforeResize >= thisScreen ) {
+                        thisNewScreen = thisScreen;
+                    }
                 }
             }
-            function startResize(elem) {
-                biggerHeight = FRresize.prototype.getBiggerValue(elem);
+            return parseInt(thisNewScreen);
+        }
 
-                var i;
-                for (i = 0; i < elem.length; i++) {
 
-                    var thisElem = $(elem[i]);
-                    var thisElemToChange = FRresize.prototype.elemToResize(thisElem);
-                    var cssToChange = FRresize.prototype.cssToChange(thisElem);
-                    var heightDiff = biggerHeight - thisElem.outerHeight();
 
-                    var oldCssValue = parseInt(thisElemToChange.css(cssToChange).replace('px', ''));
-                    var newCssValue = oldCssValue + heightDiff;
 
-                    thisElemToChange.css(cssToChange, newCssValue + 'px');
-                }
+
+        function removeAllStyle(elem) {
+            biggerHeight = 0;
+            var i;
+            for (i = 0; i < elem.length; i++) {
+                var thisElem = $(elem[i]);
+                var cssToChange = FRresize.prototype.cssToChange(thisElem);
+                thisElem.css(cssToChange, '')
             }
-            var wichScreenBeforeResize = FRresize.prototype.wichScreen();
-            if (options.onLoad) {
-                if ( wichScreenBeforeResize != 'screenXs' || (wichScreenBeforeResize != 'screenXs' && options.resizeXs )) {
+        }
+        function startResize(elem) {
+            biggerHeight = FRresize.prototype.getBiggerValue(elem);
+
+            var i;
+            for (i = 0; i < elem.length; i++) {
+
+                var thisElem = $(elem[i]);
+                var thisElemToChange = FRresize.prototype.elemToResize(thisElem);
+                var cssToChange = FRresize.prototype.cssToChange(thisElem);
+                var heightDiff = biggerHeight - thisElem.outerHeight();
+
+                var oldCssValue = parseInt(thisElemToChange.css(cssToChange).replace('px', ''));
+                var newCssValue = oldCssValue + heightDiff;
+
+                thisElemToChange.css(cssToChange, newCssValue + 'px');
+            }
+        }
+        var wichScreenBeforeResize = FRresize.prototype.wichScreen();
+        if (options.onLoad) {
+            if ( wichScreenBeforeResize != 'screenXs' || (wichScreenBeforeResize != 'screenXs' && options.resizeXs )) {
+                startResize(ALLITEM);
+            }
+        }
+        if (options.responsive) {
+            $(window).resize(function () {
+                var wichScreenduringResize = FRresize.prototype.wichScreen();
+
+                if ( wichScreenduringResize != wichScreenBeforeResize &&  wichScreenduringResize != 'screenXs') {
+                    removeAllStyle(ALLITEM);
                     startResize(ALLITEM);
-                }
-            }
-            if (options.responsive) {
-                $(window).resize(function () {
-                    var wichScreenduringResize = FRresize.prototype.wichScreen();
+                    wichScreenBeforeResize = FRresize.prototype.wichScreen();
+                } else if ( wichScreenduringResize == 'screenXs' ) {
+                    removeAllStyle(ALLITEM);
 
-                    if ( wichScreenduringResize != wichScreenBeforeResize &&  wichScreenduringResize != 'screenXs') {
-                        removeAllStyle(ALLITEM);
+                    if (options.resizeXs) {
                         startResize(ALLITEM);
-                        wichScreenBeforeResize = FRresize.prototype.wichScreen();
-                    } else if ( wichScreenduringResize == 'screenXs' ) {
-                        removeAllStyle(ALLITEM);
-
-                        if (options.resizeXs) {
-                            startResize(ALLITEM);
-                        } else {
-                            removeAllStyle(ALLITEM)
-                        }
+                    } else {
+                        removeAllStyle(ALLITEM)
                     }
-                });
-            }
+                }
+            });
+
         }
     }
 }( jQuery ));
